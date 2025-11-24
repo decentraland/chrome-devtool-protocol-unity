@@ -12,5 +12,8 @@
     "name": "Nick Khalow",
     "url": "https://github.com/NickKhalow",
     "email": "nickhalow@gmail.com"
+  },
+  "dependencies": {
+    "com.decentraland.renum": "https://github.com/NickKhalow/REnum.git?path=REnum"
   }
 }
