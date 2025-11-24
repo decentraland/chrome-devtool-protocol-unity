@@ -2,14 +2,14 @@
     "name": "CDPBridge",
     "rootNamespace": "CDPBridge",
     "references": [
-        "GUID:f51ebe6a0ceec4240a699833d6309b23"
+        "GUID:f51ebe6a0ceec4240a699833d6309b23",
+        "GUID:40cc3d3e494162646bdb002eed05aeec"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],
     "allowUnsafeCode": false,
     "overrideReferences": true,
     "precompiledReferences": [
-        "REnum.dll",
         "Fleck.dll",
         "Microsoft.Extensions.Logging.Abstractions.dll",
         "Newtonsoft.Json.dll"
