@@ -1,6 +1,8 @@
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Linq;
+using System.Text;
 using Newtonsoft.Json;
 using REnum;
 
@@ -47,7 +49,6 @@ namespace CDPBridges
 
 
     [REnum]
-    [REnumPregenerated]
     [REnumFieldEmpty("UnsafeUrl")]
     [REnumFieldEmpty("NoReferrerWhenDowngrade")]
     [REnumFieldEmpty("NoReferrer")]
@@ -72,7 +73,6 @@ namespace CDPBridges
 
 
     [REnum]
-    [REnumPregenerated]
     [REnumFieldEmpty("Unknown")]
     [REnumFieldEmpty("Neutral")]
     [REnumFieldEmpty("Insecure")]
@@ -213,14 +213,22 @@ namespace CDPBridges
         public readonly string url;
         public readonly HttpMethod method;
         public readonly Dictionary<string, string> headers;
+        public readonly PostDataEntry[] postDataEntries;
+        public readonly string? postData;
         public readonly ReferrerPolicy referrerPolicy;
 
-        public Request(string url, HttpMethod method, Dictionary<string, string> headers, ReferrerPolicy referrerPolicy)
+        public Request(string url, HttpMethod method, Dictionary<string, string> headers, ReferrerPolicy referrerPolicy, string? postData)
         {
             this.url = url;
             this.method = method;
             this.headers = headers;
             this.referrerPolicy = referrerPolicy;
+            this.postData = postData;
+
+            this.postDataEntries = string.IsNullOrEmpty(postData)
+                ? Array.Empty<PostDataEntry>()
+                : new PostDataEntry[1]
+                    { new PostDataEntry { bytes = Convert.ToBase64String(Encoding.UTF8.GetBytes(postData)) } };
         }
 
         public Raw ToRaw()
@@ -230,7 +238,10 @@ namespace CDPBridges
                 url = url,
                 method = method.ToString(),
                 headers = headers,
-                referrerPolicy = referrerPolicy.Value
+                referrerPolicy = referrerPolicy.Value,
+                postDataEntries = postDataEntries,
+                hasPostData = postDataEntries.Length > 0,
+                postData = postData
             };
         }
 
@@ -242,9 +253,29 @@ namespace CDPBridges
             public string method;
             public Dictionary<string, string> headers;
             public string referrerPolicy;
+            public bool hasPostData;
+            
+            /// <summary>
+            /// Experimental - seems to be not supported in Electron of the Creator Hub
+            /// </summary>
+            public PostDataEntry[] postDataEntries;
+            
+            /// <summary>
+            /// Despite <see cref="postData"/> is deprecated <see cref="postDataEntries"/> do not work
+            /// </summary>
+            [Obsolete]
+            public string? postData;
         }
     }
 
+    [Serializable]
+    public struct PostDataEntry
+    {
+        /// <summary>
+        /// Base64 encoded
+        /// </summary>
+        public string bytes;
+    }
 
     public struct MonotonicTime
     {
@@ -307,7 +338,6 @@ namespace CDPBridges
 
 
     [REnum]
-    [REnumPregenerated]
     [REnumField(typeof(Network_requestWillBeSent))]
     [REnumField(typeof(Network_responseReceived))]
     [REnumField(typeof(Network_loadingFinished))]

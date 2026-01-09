@@ -7,11 +7,14 @@ namespace CDPBridges
 {
     public interface IBridge : IDisposable
     {
-        BridgeStatus Status { get; }
+        Action<int, CDPMethod>? OnMethodInvoked { set; }
         
+        BridgeStatus Status { get; }
+
         BridgeStartResult Start();
 
         UniTask<SendResult> SendEventAsync(CDPEvent cdpEvent, CancellationToken token);
+        void SendResponse(int requestId, CDPResult result, CancellationToken ct);
     }
 
     public enum BridgeStatus
@@ -21,26 +24,20 @@ namespace CDPBridges
         HasListeners
     }
 
-
     [REnum]
-    [REnumPregenerated]
     [REnumFieldEmpty("Success")]
     [REnumField(typeof(BridgeStartError))]
     public partial struct BridgeStartResult
     {
-
     }
 
 
     [REnum]
-    [REnumPregenerated]
     [REnumField(typeof(WebSocketError))]
     [REnumField(typeof(BrowserOpenError))]
     public partial struct BridgeStartError
     {
-
     }
-
 
     public readonly struct WebSocketError
     {

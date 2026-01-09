@@ -3,7 +3,6 @@ using REnum;
 namespace CDPBridges
 {
     [REnum]
-    [REnumPregenerated]
     [REnumField(typeof(Text))]
     [REnumField(typeof(Binary))]
     public partial struct WebSocketMessage
