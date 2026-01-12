@@ -256,14 +256,16 @@ namespace CDPBridges
             public bool hasPostData;
             
             /// <summary>
-            /// Experimental - seems to be not supported in Electron of the Creator Hub
+            /// According to CDP 1.3 specification https://chromedevtools.github.io/devtools-protocol/1-3/Network/#type-Request
+            /// <see cref="postDataEntries"/> are experimental so they may be not currently implemented
             /// </summary>
             public PostDataEntry[] postDataEntries;
             
             /// <summary>
-            /// Despite <see cref="postData"/> is deprecated <see cref="postDataEntries"/> do not work
+            /// According to CDP 1.3 specification https://chromedevtools.github.io/devtools-protocol/1-3/Network/#type-Request
+            /// <see cref="postData"/> is deprecated <br/>,
+            /// however <see cref="postDataEntries"/> don't function, so support of legacy <see cref="postData"/> is needed
             /// </summary>
-            [Obsolete]
             public string? postData;
         }
     }

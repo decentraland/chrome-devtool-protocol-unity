@@ -14,7 +14,7 @@ namespace CDPBridges
 {
     public class Bridge : IBridge
     {
-        public Action<int, CDPMethod>? OnMethodInvoked { private get; set; }
+        public Func<int, CDPMethod, CDPResult?>? HandleMethod { private get; set; }
         
         private readonly IBrowser browser;
         private readonly ILogger logger;
@@ -61,9 +61,11 @@ namespace CDPBridges
                 {
                     SendResponse(request.Id, CDPResult.Network_enable(), lifetimeCancellationTokenSource.Token);
                 }
-                else if (OnMethodInvoked != null)
+                else if (HandleMethod != null)
                 {
-                    OnMethodInvoked(request.Id, request.Method);
+                    var result = HandleMethod(request.Id, request.Method);
+                    if (result.HasValue)
+                        SendResponse(request.Id, result.Value, lifetimeCancellationTokenSource.Token);
                 }
             };
             socket.OnBinary += message => { logger.LogInformation("Socket binary received: {}", message.Length); };
@@ -122,7 +124,7 @@ namespace CDPBridges
             );
         }
 
-        public void SendResponse(int requestId, CDPResult result, CancellationToken ct)
+        private void SendResponse(int requestId, CDPResult result, CancellationToken ct)
         {
             var response = new CDPResponse(requestId, result);
             SendEventAndForgetAsync(response, ct).Forget();

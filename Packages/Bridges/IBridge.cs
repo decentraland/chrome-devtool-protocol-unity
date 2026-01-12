@@ -7,14 +7,18 @@ namespace CDPBridges
 {
     public interface IBridge : IDisposable
     {
-        Action<int, CDPMethod>? OnMethodInvoked { set; }
+        /// <summary>
+        /// Handler for CDP Method according to https://chromedevtools.github.io/devtools-protocol/1-3/Network/ "Methods": <br/>
+        /// It's allowed to return to `null` if the given Method is not implemented by the client. <br/>
+        /// <see cref="HandleMethod"/> is called from a background thread
+        /// </summary>
+        Func<int, CDPMethod, CDPResult?>? HandleMethod { set; }
         
         BridgeStatus Status { get; }
 
         BridgeStartResult Start();
 
         UniTask<SendResult> SendEventAsync(CDPEvent cdpEvent, CancellationToken token);
-        void SendResponse(int requestId, CDPResult result, CancellationToken ct);
     }
 
     public enum BridgeStatus

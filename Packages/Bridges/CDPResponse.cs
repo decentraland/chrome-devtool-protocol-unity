@@ -41,8 +41,8 @@ namespace CDPBridges
         {
             // JsonCovert requires "object" anyway so we can't avoid boxing
             var responseRaw = Result.Match(Id,
-                (id, body) => (object)new CDPResponseRaw<CDPResult.GetResponseBody>(id, body),
-                id => new CDPResponseRaw<CDPResult.Empty>()
+                static (id, body) => (object)new CDPResponseRaw<CDPResult.GetResponseBody>(id, body),
+                static _ => new CDPResponseRaw<CDPResult.Empty>()
             );
 
             return JsonConvert.SerializeObject(responseRaw);
