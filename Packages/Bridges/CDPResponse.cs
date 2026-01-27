@@ -1,16 +1,20 @@
 using System;
 using Newtonsoft.Json;
 using REnum;
+using UnityEngine;
 
 namespace CDPBridges
 {
+    /// <summary>
+    /// T should be "object", not a stringified JSON
+    /// </summary>
     [Serializable]
-    public struct CDPResponseRaw
+    public struct CDPResponseRaw<T> where T : struct
     {
         public int id;
-        public string result;
+        public T result;
 
-        public CDPResponseRaw(int id, string result)
+        public CDPResponseRaw(int id, T result)
         {
             this.id = id;
             this.result = result;
@@ -21,7 +25,6 @@ namespace CDPBridges
             return JsonConvert.SerializeObject(this);
         }
     }
-
 
     public readonly struct CDPResponse
     {
@@ -34,14 +37,15 @@ namespace CDPBridges
             Result = result;
         }
 
-        public CDPResponseRaw Into()
-        {
-            return new CDPResponseRaw(Id, Result.ToJson());
-        }
-
         public string ToJson()
         {
-            return Into().ToJson();
+            // JsonCovert requires "object" anyway so we can't avoid boxing
+            var responseRaw = Result.Match(Id,
+                static (id, body) => (object)new CDPResponseRaw<CDPResult.GetResponseBody>(id, body),
+                static _ => new CDPResponseRaw<CDPResult.Empty>()
+            );
+
+            return JsonConvert.SerializeObject(responseRaw);
         }
 
         public override string ToString()
@@ -50,19 +54,27 @@ namespace CDPBridges
         }
     }
 
-
     [REnum]
-    [REnumPregenerated]
     [REnumFieldEmpty("Network_enable")]
+    [REnumField(typeof(GetResponseBody))]
     public partial struct CDPResult
     {
-        private const string EmptyJson = "{}";
-
-        public string ToJson()
+        [Serializable]
+        public struct Empty
         {
-            return Match(
-                onNetwork_enable: static () => EmptyJson
-            );
+        }
+        
+        [Serializable]
+        public struct GetResponseBody
+        {
+            public string body;
+            public bool base64Encoded;
+
+            public GetResponseBody(string body, bool base64Encoded)
+            {
+                this.body = body;
+                this.base64Encoded = base64Encoded;
+            }
         }
     }
 }

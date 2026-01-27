@@ -51,9 +51,9 @@ namespace CDPBridges
 
 
     [REnum]
-    [REnumPregenerated]
     [REnumFieldEmpty("Network_enable")]
     [REnumField(typeof(Unknown))]
+    [REnumField(typeof(GetResponseBody))]
     public partial struct CDPMethod
     {
         public static CDPMethod FromRaw(string method, JObject @params)
@@ -61,10 +61,26 @@ namespace CDPBridges
             return method switch
             {
                 "Network.enable" => Network_enable(),
+                "Network.getResponseBody" => FromGetResponseBody(new GetResponseBody(@params.Value<int>("requestId")!)),
                 _ => FromUnknown(new Unknown(method))
             };
         }
 
+        /// <summary>
+        /// https://chromedevtools.github.io/devtools-protocol/1-3/Network/#method-getResponseBody
+        /// </summary>
+        public readonly struct GetResponseBody
+        {
+            public readonly int RequestId;
+
+            public GetResponseBody(int requestId)
+            {
+                RequestId = requestId;
+            }
+
+            public CDPResult RespondWith(CDPResult.GetResponseBody getResponseBody) =>
+                CDPResult.FromGetResponseBody(getResponseBody);
+        }
 
         public readonly struct Unknown
         {

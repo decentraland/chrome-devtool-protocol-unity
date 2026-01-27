@@ -14,6 +14,8 @@ namespace CDPBridges
 {
     public class Bridge : IBridge
     {
+        public Func<int, CDPMethod, CDPResult?>? HandleMethod { private get; set; }
+        
         private readonly IBrowser browser;
         private readonly ILogger logger;
         private readonly WebSocketServer webSocketServer;
@@ -57,8 +59,13 @@ namespace CDPBridges
 
                 if (request.Method.IsNetwork_enable())
                 {
-                    var response = new CDPResponse(request.Id, CDPResult.Network_enable());
-                    SendEventAndForgetAsync(response, lifetimeCancellationTokenSource.Token).Forget();
+                    SendResponse(request.Id, CDPResult.Network_enable(), lifetimeCancellationTokenSource.Token);
+                }
+                else if (HandleMethod != null)
+                {
+                    var result = HandleMethod(request.Id, request.Method);
+                    if (result.HasValue)
+                        SendResponse(request.Id, result.Value, lifetimeCancellationTokenSource.Token);
                 }
             };
             socket.OnBinary += message => { logger.LogInformation("Socket binary received: {}", message.Length); };
@@ -117,6 +124,12 @@ namespace CDPBridges
             );
         }
 
+        private void SendResponse(int requestId, CDPResult result, CancellationToken ct)
+        {
+            var response = new CDPResponse(requestId, result);
+            SendEventAndForgetAsync(response, ct).Forget();
+        }
+
         private UniTaskVoid SendEventAndForgetAsync(CDPResponse response, CancellationToken token)
         {
             string message = response.ToJson();
@@ -156,15 +169,15 @@ namespace CDPBridges
             try
             {
                 List<Task> taskList = new();
-                if (message.IsBinary(out WebSocketMessage.Binary? binary))
+                if (message.IsBinary(out WebSocketMessage.Binary binary))
                     foreach (KeyValuePair<int, IWebSocketConnection> pair in connections)
                     {
-                        taskList.Add(pair.Value!.Send(binary!.Value.Data));
+                        taskList.Add(pair.Value!.Send(binary!.Data));
                     }
-                else if (message.IsText(out WebSocketMessage.Text? text))
+                else if (message.IsText(out WebSocketMessage.Text text))
                     foreach (KeyValuePair<int, IWebSocketConnection> pair in connections)
                     {
-                        taskList.Add(pair.Value!.Send(text!.Value.Message));
+                        taskList.Add(pair.Value!.Send(text!.Message));
                     }
 
                 await Task.WhenAll(taskList)!;
@@ -187,7 +200,6 @@ namespace CDPBridges
 
 
     [REnum]
-    [REnumPregenerated]
     [REnumFieldEmpty("Success")]
     [REnumFieldEmpty("ConnectionIsNotEstablished")]
     [REnumField(typeof(WebSocketError))]

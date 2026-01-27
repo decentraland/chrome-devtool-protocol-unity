@@ -7,8 +7,15 @@ namespace CDPBridges
 {
     public interface IBridge : IDisposable
     {
-        BridgeStatus Status { get; }
+        /// <summary>
+        /// Handler for CDP Method according to https://chromedevtools.github.io/devtools-protocol/1-3/Network/ "Methods": <br/>
+        /// It's allowed to return to `null` if the given Method is not implemented by the client. <br/>
+        /// <see cref="HandleMethod"/> is called from a background thread
+        /// </summary>
+        Func<int, CDPMethod, CDPResult?>? HandleMethod { set; }
         
+        BridgeStatus Status { get; }
+
         BridgeStartResult Start();
 
         UniTask<SendResult> SendEventAsync(CDPEvent cdpEvent, CancellationToken token);
@@ -21,26 +28,20 @@ namespace CDPBridges
         HasListeners
     }
 
-
     [REnum]
-    [REnumPregenerated]
     [REnumFieldEmpty("Success")]
     [REnumField(typeof(BridgeStartError))]
     public partial struct BridgeStartResult
     {
-
     }
 
 
     [REnum]
-    [REnumPregenerated]
     [REnumField(typeof(WebSocketError))]
     [REnumField(typeof(BrowserOpenError))]
     public partial struct BridgeStartError
     {
-
     }
-
 
     public readonly struct WebSocketError
     {

@@ -30,7 +30,8 @@ public class EntryPoint : MonoBehaviour
                 "http://check-url",
                 HttpMethod.GET,
                 new Dictionary<string, string>(),
-                ReferrerPolicy.Origin()
+                ReferrerPolicy.Origin(),
+                "test payload"
             ),
             MonotonicTime.Now,
             TimeSinceEpoch.Now,
