@@ -63,6 +63,7 @@ public class EntryPoint : MonoBehaviour
                 connectionReused: false,
                 connectionId: 1,
                 encodedDataLength: 0,
+                null,
                 responseTime: TimeSinceEpoch.Now,
                 cacheStorageCacheName: "",
                 protocol: "http/1.1",

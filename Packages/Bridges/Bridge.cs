@@ -14,7 +14,12 @@ namespace CDPBridges
 {
     public class Bridge : IBridge
     {
-        public Func<int, CDPMethod, CDPResult?>? HandleMethod { private get; set; }
+        /// <summary>
+        /// Handler for CDP Method according to https://chromedevtools.github.io/devtools-protocol/1-3/Network/ "Methods": <br/>
+        /// It's allowed to return to `null` if the given Method is not implemented by the client. <br/>
+        /// <see cref="handleMethod"/> is called from a background thread
+        /// </summary>
+        private readonly Func<int, CDPMethod, CDPResult?>? handleMethod;
         
         private readonly IBrowser browser;
         private readonly ILogger logger;
@@ -30,8 +35,9 @@ namespace CDPBridges
             ? connections.Count > 0 ? BridgeStatus.HasListeners : BridgeStatus.Online
             : BridgeStatus.Offline;
 
-        public Bridge(int port = 1473, IBrowser? browser = null, ILogger? logger = null)
+        public Bridge(Func<int, CDPMethod, CDPResult?>? handleMethod = null, int port = 1473, IBrowser? browser = null, ILogger? logger = null)
         {
+            this.handleMethod = handleMethod;
             this.browser = browser ?? new ProcessBrowser();
             this.logger = logger ?? NullLogger.Instance;
             lifetimeCancellationTokenSource = new CancellationTokenSource();
@@ -61,9 +67,9 @@ namespace CDPBridges
                 {
                     SendResponse(request.Id, CDPResult.Network_enable(), lifetimeCancellationTokenSource.Token);
                 }
-                else if (HandleMethod != null)
+                else if (handleMethod != null)
                 {
-                    var result = HandleMethod(request.Id, request.Method);
+                    var result = handleMethod(request.Id, request.Method);
                     if (result.HasValue)
                         SendResponse(request.Id, result.Value, lifetimeCancellationTokenSource.Token);
                 }
