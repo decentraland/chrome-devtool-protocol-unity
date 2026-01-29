@@ -128,6 +128,7 @@ namespace CDPBridges
         public readonly bool connectionReused;
         public readonly int connectionId;
         public readonly long encodedDataLength;
+        public readonly ResourceTiming? resourceTiming;
         public readonly TimeSinceEpoch responseTime;
         public readonly string cacheStorageCacheName;
         public readonly string protocol;
@@ -144,6 +145,7 @@ namespace CDPBridges
             bool connectionReused,
             int connectionId,
             long encodedDataLength,
+            ResourceTiming? resourceTiming,
             TimeSinceEpoch responseTime,
             string cacheStorageCacheName,
             string protocol,
@@ -159,6 +161,7 @@ namespace CDPBridges
             this.connectionReused = connectionReused;
             this.connectionId = connectionId;
             this.encodedDataLength = encodedDataLength;
+            this.resourceTiming = resourceTiming;
             this.responseTime = responseTime;
             this.cacheStorageCacheName = cacheStorageCacheName;
             this.protocol = protocol;
@@ -179,6 +182,7 @@ namespace CDPBridges
                 connectionReused = connectionReused,
                 connectionId = connectionId,
                 encodedDataLength = encodedDataLength,
+                timing = resourceTiming?.ToRaw(),
                 responseTime = responseTime.Seconds,
                 cacheStorageCacheName = cacheStorageCacheName,
                 protocol = protocol,
@@ -200,6 +204,7 @@ namespace CDPBridges
             public bool connectionReused;
             public int connectionId;
             public long encodedDataLength;
+            public ResourceTiming.Raw? timing;
             public double responseTime;
             public string cacheStorageCacheName;
             public string protocol;
@@ -291,7 +296,6 @@ namespace CDPBridges
         public static MonotonicTime Now => new MonotonicTime(Stopwatch.GetTimestamp() / (double)Stopwatch.Frequency);
     }
 
-
     public struct TimeSinceEpoch
     {
         public double Seconds { get; }
@@ -304,6 +308,122 @@ namespace CDPBridges
         public static TimeSinceEpoch Now => new TimeSinceEpoch((DateTime.UtcNow - DateTime.UnixEpoch).TotalSeconds);
     }
 
+    public struct ResourceTiming
+    {
+        private Raw data;
+
+        public ResourceTiming(double requestTime)
+        {
+            data = new Raw { requestTime = requestTime };
+            SendEndAssigned = false;
+            ReceiveHeadersEndAssigned = false;
+        }
+        
+        public bool SendEndAssigned { get; private set; }
+        
+        public bool ReceiveHeadersEndAssigned { get; private set; }
+
+        public void AssignSendEnd(double monotonicSeconds)
+        {
+            if (SendEndAssigned) return;
+
+            data.sendEnd = (monotonicSeconds - data.requestTime) * 1000f;
+            SendEndAssigned = true;
+        }
+
+        public void AssignReceiveHeadersEnd(double monotonicSeconds)
+        {
+            if (ReceiveHeadersEndAssigned)  return;
+            
+            data.receiveHeadersEnd = (monotonicSeconds - data.requestTime) * 1000f;
+            ReceiveHeadersEndAssigned = true;
+        }
+
+        public Raw ToRaw() => data;
+
+        /// <summary>
+        /// Set <see cref="Raw.requestTime"/> and other data that can't be inferred from UnityWebRequest
+        /// </summary>
+        public static ResourceTiming CreateFromUnityWebRequestStarted(double baseline)
+        {
+            var timing = new ResourceTiming(baseline);
+            timing.data.proxyStart = 0;
+            timing.data.proxyEnd = 0;
+            timing.data.dnsStart = 0;
+            timing.data.dnsEnd = 0;
+            timing.data.connectStart = 0;
+            timing.data.connectEnd = 0;
+            timing.data.sslStart = 0;
+            timing.data.sslEnd = 0;
+            timing.data.sendStart = 0;
+
+            return timing;
+        }
+
+        [Serializable]
+        public struct Raw
+        {
+            /// <summary>
+            /// Timing's requestTime is a baseline in seconds, while the other numbers are ticks in milliseconds relatively to this requestTime.
+            /// </summary>
+            public double requestTime;
+            
+            /// <summary>
+            /// Started resolving proxy.
+            /// </summary>
+            public double proxyStart;
+            
+            /// <summary>
+            /// Finished resolving proxy.
+            /// </summary>
+            public double proxyEnd;
+
+            /// <summary>
+            /// Started DNS address resolve.
+            /// </summary>
+            public double dnsStart;
+
+            /// <summary>
+            /// Finished DNS address resolve.
+            /// </summary>
+            public double dnsEnd;
+
+            /// <summary>
+            /// Started connecting to the remote host
+            /// </summary>
+            public double connectStart;
+            
+            /// <summary>
+            /// Connected to the remote host.
+            /// </summary>
+            public double connectEnd;
+
+            /// <summary>
+            /// Started SSL handshake.
+            /// </summary>
+            public double sslStart;
+
+            /// <summary>
+            /// Finished SSL handshake
+            /// </summary>
+            public double sslEnd;
+
+            /// <summary>
+            /// Started sending request.
+            /// </summary>
+            public double sendStart;
+
+            /// <summary>
+            /// Finished sending request.
+            /// </summary>
+            public double sendEnd;
+
+            /// <summary>
+            /// Finished receiving response headers.
+            /// </summary>
+            public double receiveHeadersEnd;
+        }
+    }
 
     public readonly struct Initiator
     {
