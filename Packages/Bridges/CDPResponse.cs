@@ -1,4 +1,5 @@
 using System;
+using System.Text;
 using Newtonsoft.Json;
 using REnum;
 
@@ -38,13 +39,15 @@ namespace CDPBridges
 
         public string ToJson()
         {
-            // JsonCovert requires "object" anyway so we can't avoid boxing
-            var responseRaw = Result.Match(Id,
-                static (id, body) => (object)new CDPResponseRaw<CDPResult.GetResponseBody>(id, body),
-                static _ => new CDPResponseRaw<CDPResult.Empty>()
-            );
+            if (Result.IsJson(out CDPResult.Json json))
+                return new StringBuilder(json.raw.Length + 28)
+                    .Append("{\"id\":").Append(Id).Append(",\"result\":").Append(json.raw).Append('}')
+                    .ToString();
 
-            return JsonConvert.SerializeObject(responseRaw);
+            if (Result.IsGetResponseBody(out CDPResult.GetResponseBody body))
+                return new CDPResponseRaw<CDPResult.GetResponseBody>(Id, body).ToJson();
+
+            return new CDPResponseRaw<CDPResult.Empty>().ToJson();
         }
 
         public override string ToString()
@@ -56,6 +59,7 @@ namespace CDPBridges
     [REnum]
     [REnumFieldEmpty("Network_enable")]
     [REnumField(typeof(GetResponseBody))]
+    [REnumField(typeof(Json))]
     public partial struct CDPResult
     {
         [Serializable]
@@ -73,6 +77,16 @@ namespace CDPBridges
             {
                 this.body = body;
                 this.base64Encoded = base64Encoded;
+            }
+        }
+
+        public readonly struct Json
+        {
+            public readonly string raw;
+
+            public Json(string raw)
+            {
+                this.raw = raw;
             }
         }
     }
