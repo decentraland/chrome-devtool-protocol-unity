@@ -54,6 +54,7 @@ namespace CDPBridges
     [REnumFieldEmpty("Network_enable")]
     [REnumField(typeof(Unknown))]
     [REnumField(typeof(GetResponseBody))]
+    [REnumField(typeof(Custom))]
     public partial struct CDPMethod
     {
         public static CDPMethod FromRaw(string method, JObject @params)
@@ -62,7 +63,7 @@ namespace CDPBridges
             {
                 "Network.enable" => Network_enable(),
                 "Network.getResponseBody" => FromGetResponseBody(new GetResponseBody(@params.Value<int>("requestId")!)),
-                _ => FromUnknown(new Unknown(method))
+                _ => FromCustom(new Custom(method, @params))
             };
         }
 
@@ -94,6 +95,23 @@ namespace CDPBridges
             public override string ToString()
             {
                 return $"({nameof(Unknown)} {{ method: {Method} }})";
+            }
+        }
+
+        public readonly struct Custom
+        {
+            public readonly string Method;
+            public readonly JObject Params;
+
+            public Custom(string method, JObject @params)
+            {
+                Method = method;
+                Params = @params;
+            }
+
+            public override string ToString()
+            {
+                return $"({nameof(Custom)} {{ method: {Method} }})";
             }
         }
     }
